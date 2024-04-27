@@ -134,12 +134,12 @@ function Note(props) {
             <textarea
                 value={noteBody}
                 onChange={(e) => {
+                    setNoteBody(e.target.value);
                     let newNote = {
                         ...note,
                         updatedAt: Date.now(),
                         body: e.target.value
                     }
-                    setNote(newNote);
                     updateNote (newNote)
                 }}
                 className='w-full h-96 p-4 border border-gray-300 rounded-md'
