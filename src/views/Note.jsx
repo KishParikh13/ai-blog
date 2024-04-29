@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getCompletion } from '../api/OpenAI';
-import { getNote, saveNote } from '../api/LocalStorage';
 import { findRecordByField, updateRecord } from '../api/Airtable';
+import { Accordion } from '../components/Elements';
 
 function Note(props) {
 
@@ -16,7 +16,7 @@ function Note(props) {
     const [stagedRevision, setStagedRevision] = useState('');
     const [recordID, setRecordID] = useState('')
 
-    const [suggestionPreprompt, setSuggestionPreprompt] = useState('You are a helpful AI. Generate some journaling prompts given a users context and current note. Skip the preamble.');
+    const [suggestionPreprompt, setSuggestionPreprompt] = useState('You are a helpful assistant. Generate 4-5 suggestions based on the users prompt.');
     const [revisionPreprompt, setRevisionPreprompt] = useState('You are a coauthoring agent. Rewrite a users initial content to incorporate the suggestions and instructions.');
 
     async function updateNote (note) {
@@ -106,6 +106,11 @@ function Note(props) {
         // console.log(message);
     }
     
+    async function getUser () {
+        let user = JSON.parse(localStorage.getItem('user'))
+        return user
+    }
+
 
     async function routePrompt (prompt) {
         let messages = [
@@ -127,6 +132,24 @@ function Note(props) {
             default:
                 // console.log("No action taken");
         }
+    }
+
+    async function getLearnings (prompt) {
+
+        let user = await getUser()
+        let userName = user.name
+        let userContext = user.context
+        let messages = [
+            { role: 'system', content: `You are to analyze a ${userName}'s journal entry. Based on the provided information, list any inferences about the persons psychology or life. Include a reason as to why that conclusion was made. Format it in first person as a bullet point list.` },
+            { role: 'user', content: `${userName}'s note" ${noteName} ${noteBody}` },
+            { role: 'user', content: `${userName}'s bio: ${userContext}` },
+            { role: 'user', content: `${userName}'s prompt: ${prompt}. Learnings:` },
+        ]
+        let completion = await getCompletion(messages);
+        console.log("getLearnings", completion.content);
+        // console.log("revision", completion);
+        let message = completion.content
+        setStagedRevision(message)
     }
 
     return (
@@ -205,28 +228,33 @@ function Note(props) {
                 }
 
                 {/* revision prompt */}
-                <input value={revisionPreprompt} onChange={
-                        (e) => setRevisionPreprompt(e.target.value)
-                    } className='w-full p-2 border border-gray-300 rounded-md text-xs mb-2' placeholder='Preprompt' />
+                {/* <input value={revisionPreprompt} onChange={
+                    (e) => setRevisionPreprompt(e.target.value)
+                } className='w-full p-2 border border-gray-300 rounded-md text-xs mb-2' placeholder='Preprompt' /> */}
 
                 <div className='flex gap-2 mb-2 whitespace-nowrap'>
                     <input value={suggestionPrompt} onChange={
                         (e) => setSuggestionPrompt(e.target.value)
                     } className='w-full p-2 border border-gray-300 rounded-md' placeholder='Prompt' />
-                    <button onClick={e => routePrompt(suggestionPrompt)} className='bg-black text-white px-4 py-2 rounded-md '>
+                    {/* <button onClick={e => routePrompt(suggestionPrompt)} className='bg-black text-white px-4 py-2 rounded-md '>
                         Route
-                    </button>
-                    {/* <button onClick={e => incorporateSuggestion (selectedSuggestion, suggestionPrompt)} className='bg-blue-500 text-white px-4 py-2 rounded-md '>
+                    </button> */}
+                     <button onClick={e => incorporateSuggestion (selectedSuggestion, suggestionPrompt)} className='bg-blue-500 text-white px-4 py-2 rounded-md '>
                         Revise
                     </button>   
                     <button onClick={generateSuggestions} className='bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-md text-lg'>
                         Suggest
-                    </button> */}
+                    </button>
+                    <button onClick={getLearnings} className='bg-blue-500 text-white px-4 py-2 rounded-md '>
+                        Learn
+                    </button>
                 </div>
                 {/* sugg prompt */}
-                    <input value={suggestionPreprompt} onChange={
-                        (e) => setSuggestionPreprompt(e.target.value)
-                    } className='w-full p-2 border border-gray-300 rounded-md text-xs' placeholder='Preprompt' />
+                {/* <input value={suggestionPreprompt} onChange={
+                    (e) => setSuggestionPreprompt(e.target.value)
+                } className='w-full p-2 border border-gray-300 rounded-md text-xs' placeholder='Preprompt' /> */}
+
+                <Accordion title='Suggestions'>
                 <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4'>
                     {
                         note.suggestions && note.suggestions.map((suggestion, i) => {
@@ -257,6 +285,7 @@ function Note(props) {
                         })
                     }
                 </div>
+                </Accordion>
                 
             </div>
         </div>

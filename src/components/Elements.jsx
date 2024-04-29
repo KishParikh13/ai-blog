@@ -1,3 +1,4 @@
+import { useState } from "react"
 
 
 
@@ -67,5 +68,26 @@ export function SearchIcon(props) {
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.3-4.3" />
         </svg>
+    )
+}
+
+
+// accordion
+
+export function Accordion(props) {
+    const [open, setOpen] = useState(false)
+    return (
+        <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+            <div className="p-4 flex justify-between items-center" onClick={e => setOpen(!open)}>
+                <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">{props.title}</div>
+                <div className="text-gray-500 dark:text-gray-400">{open ? "▲" : "▼"}</div>
+            </div>
+            <div className={(open ? "block" : "hidden") + " px-4 pb-4"}>
+
+                {props.children}
+
+            </div>
+
+        </div>
     )
 }

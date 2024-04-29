@@ -22,6 +22,7 @@ function Login() {
         let formattedUser = {
             id: user.id,
             email: user.fields.email,
+            context: user.fields.context,
             name: user.fields.name,
         }
         localStorage.setItem('user', JSON.stringify(formattedUser))

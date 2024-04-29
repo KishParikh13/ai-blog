@@ -90,10 +90,11 @@ function SideNavLink(props) {
   return <NavLink
     to={`/notes/${props.note.id}`}
     className={({ isActive }) =>
-      isActive ? "bg-gray-500 text-white px-4 py-2 rounded-md text-left flex justify-between items-center" : "bg-gray-50 hover:bg-gray-200 text-black px-4 py-2 rounded-md text-left flex justify-between items-center"
+      isActive ? "bg-gray-500 text-ellipsis whitespace-nowrap text-white px-4 py-2 rounded-md text-left flex justify-between items-center" : "bg-gray-50 hover:bg-gray-200 text-black px-4 py-2 rounded-md text-left flex justify-between items-center"
     }
   >
-    Note #{props.note.id}
+    {/* Note #{props.note.id} */}
+    {props.note.name}
 
     {props.note.id > 1 ? <p onClick={e => deleteRecord(props.note.recordID)}>-</p> : <></>}
 
