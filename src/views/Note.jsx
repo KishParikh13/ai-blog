@@ -28,24 +28,26 @@ function Note(props) {
     async function getNote () {
 
         const record = await findRecordByField('Notes', "id", id)
-        console.log(id, record);
+        // console.log(id, record);
         setRecordID(record.id)
 
         // parse suggestions
         try {
             record.fields.suggestions = JSON.parse(record.fields.suggestions)
         } catch (e) {
-            console.log("failed:", record.fields.suggestions.trim());
+            // console.log("failed:", record.fields.suggestions.trim());
             record.fields.suggestions = []
         }
 
         let note = {
             name: record.fields.name,
             body: record.fields.body,
+            createdAt: record.fields.createdAt,
+            updatedAt: record.fields.updatedAt,
             suggestions: record.fields.suggestions
         }
 
-        console.log(note);
+        // console.log(note);
         setNote(note)
         setNoteName(note.name)
         setNoteBody(note.body)
@@ -55,14 +57,15 @@ function Note(props) {
         getNote()
     }, [id])
 
-    const generateSuggestions = async () => {
+    const generateSuggestions = async (prompt) => {
         let messages = [
             { role: 'system', content: 'You are a helpful AI. Generate some journaling prompts given a users context and current note. Skip the preamble.' },
             { role: 'user', content: `Some context about me: ${noteName} Note body: ${noteBody}` },
-            { role: 'user', content: `Note title: ${noteName} Note body: ${noteBody}` }
+            { role: 'user', content: `Note title: ${noteName} Note body: ${noteBody}` },
+            { role: 'user', content: `${prompt}`}
         ]
         let suggestions = await getCompletion(messages);
-        console.log("suggestions", suggestions);
+        // console.log("suggestions", suggestions);
         suggestions = suggestions.content
         suggestions = suggestions.split('\n');
         suggestions = suggestions.filter(suggestion => suggestion.length > 0);
@@ -74,11 +77,6 @@ function Note(props) {
         }
         setNote (newNote)
         updateNote (newNote)
-        // saveNote ({
-        //     ...note,
-        //     updatedAt: Date.now(),
-        //     suggestions: suggestions
-        // }, id)
     }
 
     const deleteSuggestion = (selectedIndex) => {
@@ -90,16 +88,6 @@ function Note(props) {
         }
         setNote (newNote)
         updateNote (newNote)
-        // setNote ({
-        //     ...note,
-        //     updatedAt: Date.now(),
-        //     suggestions: newSuggestions
-        // })
-        // saveNote ({
-        //     ...note,
-        //     updatedAt: Date.now(),
-        //     suggestions: newSuggestions
-        // }, id)
     }
 
     async function incorporateSuggestion (suggestion, prompt) {
@@ -108,10 +96,33 @@ function Note(props) {
             { role: 'user', content: `Rewrite this: ${noteBody}. It should include this AI suggestion ${suggestion} and user input ${prompt}` },
         ]
         let completion = await getCompletion(messages);
-        console.log("revision", completion);
+        // console.log("revision", completion);
         let message = completion.content
         setStagedRevision(message)
-        console.log(message);
+        // console.log(message);
+    }
+    
+
+    async function routePrompt (prompt) {
+        let messages = [
+            { role: 'system', content: 'The user can either ask for Suggestions or Revisions. Based on the user prompt, respond with either "Suggest" or Revise", no punctuation.' },
+            { role: 'user', content: ` User prompt: ${prompt}.` },
+        ]
+        let completion = await getCompletion(messages);
+
+        
+        // console.log("routePrompt", completion.content);
+
+        switch (completion.content) {
+            case 'Suggest':
+                generateSuggestions(prompt)
+                break;
+            case 'Revise':
+                incorporateSuggestion(selectedSuggestion, prompt)
+                break;
+            default:
+                // console.log("No action taken");
+        }
     }
 
     return (
@@ -160,9 +171,13 @@ function Note(props) {
                         // saveNote(newNote, id)
                         updateNote (newNote)
                         setStagedRevision('')
+                        setSuggestionPrompt('')
                     }
                     } className='border border-green-700 text-green-700 bg-white  hover:bg-green-700 hover:text-white px-4 py-2 rounded-md text-lg'>
                         Accept
+                    </button>
+                    <button onClick={e => setStagedRevision('')} className='border border-red-700 text-red-700 bg-white  hover:bg-red-700 hover:text-white px-4 py-2 rounded-md text-lg'>
+                        Reject
                     </button>
                     {/*  append suggestion option */}
                     <button onClick={e => {
@@ -176,6 +191,7 @@ function Note(props) {
                         // saveNote(newNote, id)
                         updateNote (newNote)
                         setStagedRevision('')
+                        setSuggestionPrompt('')
                     }
                     } className='border border-green-700 text-green-700 bg-white  hover:bg-green-700 hover:text-white px-4 py-2 rounded-md text-lg'>
                         Append
@@ -184,15 +200,20 @@ function Note(props) {
                 </div>
                 }
 
-                <div className='flex gap-2 mb-2'>
+                <div className='flex gap-2 mb-2 whitespace-nowrap'>
                     <input value={suggestionPrompt} onChange={
                         (e) => setSuggestionPrompt(e.target.value)
                     } className='w-full p-2 border border-gray-300 rounded-md' placeholder='Prompt' />
-                    <button onClick={e => incorporateSuggestion (selectedSuggestion, suggestionPrompt)} className='bg-blue-500 text-white px-4 py-2 rounded-md '>Add</button>
+                    <button onClick={e => routePrompt(suggestionPrompt)} className='bg-black text-white px-4 py-2 rounded-md '>
+                        Route
+                    </button>
+                    {/* <button onClick={e => incorporateSuggestion (selectedSuggestion, suggestionPrompt)} className='bg-blue-500 text-white px-4 py-2 rounded-md '>
+                        Revise
+                    </button>   
+                    <button onClick={generateSuggestions} className='bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-md text-lg'>
+                        Suggest
+                    </button> */}
                 </div>
-                <button onClick={generateSuggestions} className='bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-md text-lg'>
-                    Ask AI
-                </button>
                 <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4'>
                     {
                         note.suggestions && note.suggestions.map((suggestion, i) => {
@@ -218,8 +239,6 @@ function Note(props) {
                                     }} className=' text-gray-500 '>
                                         X
                                     </button>
-
-                                        
                                 </div>
                             )
                         })
