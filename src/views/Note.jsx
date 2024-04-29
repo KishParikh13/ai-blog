@@ -7,13 +7,17 @@ import { findRecordByField, updateRecord } from '../api/Airtable';
 function Note(props) {
 
     const { id } = useParams();
+
     const [noteName, setNoteName] = useState('');
     const [noteBody, setNoteBody] = useState('');
     const [note, setNote] = useState({});
-    const [selectedSuggestion, setSelectedSuggestion] = useState('');
     const [suggestionPrompt, setSuggestionPrompt] = useState('');
+    const [selectedSuggestion, setSelectedSuggestion] = useState('');
     const [stagedRevision, setStagedRevision] = useState('');
     const [recordID, setRecordID] = useState('')
+
+    const [suggestionPreprompt, setSuggestionPreprompt] = useState('You are a helpful AI. Generate some journaling prompts given a users context and current note. Skip the preamble.');
+    const [revisionPreprompt, setRevisionPreprompt] = useState('You are a coauthoring agent. Rewrite a users initial content to incorporate the suggestions and instructions.');
 
     async function updateNote (note) {
         let updatedNote = {
@@ -59,7 +63,7 @@ function Note(props) {
 
     const generateSuggestions = async (prompt) => {
         let messages = [
-            { role: 'system', content: 'You are a helpful AI. Generate some journaling prompts given a users context and current note. Skip the preamble.' },
+            { role: 'system', content: suggestionPreprompt },
             { role: 'user', content: `Some context about me: ${noteName} Note body: ${noteBody}` },
             { role: 'user', content: `Note title: ${noteName} Note body: ${noteBody}` },
             { role: 'user', content: `${prompt}`}
@@ -92,7 +96,7 @@ function Note(props) {
 
     async function incorporateSuggestion (suggestion, prompt) {
         let messages = [
-            { role: 'system', content: 'You are a coauthoring agent. Rewrite a users initial content to incorporate the suggestions and instructions.' },
+            { role: 'system', content: revisionPreprompt },
             { role: 'user', content: `Rewrite this: ${noteBody}. It should include this AI suggestion ${suggestion} and user input ${prompt}` },
         ]
         let completion = await getCompletion(messages);
@@ -200,6 +204,11 @@ function Note(props) {
                 </div>
                 }
 
+                {/* revision prompt */}
+                <input value={revisionPreprompt} onChange={
+                        (e) => setRevisionPreprompt(e.target.value)
+                    } className='w-full p-2 border border-gray-300 rounded-md text-xs mb-2' placeholder='Preprompt' />
+
                 <div className='flex gap-2 mb-2 whitespace-nowrap'>
                     <input value={suggestionPrompt} onChange={
                         (e) => setSuggestionPrompt(e.target.value)
@@ -214,6 +223,10 @@ function Note(props) {
                         Suggest
                     </button> */}
                 </div>
+                {/* sugg prompt */}
+                    <input value={suggestionPreprompt} onChange={
+                        (e) => setSuggestionPreprompt(e.target.value)
+                    } className='w-full p-2 border border-gray-300 rounded-md text-xs' placeholder='Preprompt' />
                 <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4'>
                     {
                         note.suggestions && note.suggestions.map((suggestion, i) => {
