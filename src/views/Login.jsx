@@ -7,8 +7,9 @@ function Login() {
     const [email, setEmail] = useState('');
 
     async function loginUser() {
+        console.log('loginUser', email)
         let user = await findRecordByField('Users', 'email', email)
-        if (!user) {
+        if (!user || !user.id) {
             user = {
                 email: email,
                 context: '',
@@ -67,12 +68,13 @@ function Login() {
                         <input
                             className='border border-gray-300 rounded-md p-2 w-full'
                             placeholder='Email'
-                            type="email" id="email" required value={email}
+                            type="email"
+                            id="email"
+                            required
+                            value={email}
                             onChange={(e) => setEmail(e.target.value)}
                         />
-                        <Button size="xl" className={
-                            'bg-blue-500 text-white py-2 px-4 rounded-md'
-                        } type="submit">Submit</Button>
+                        <Button size="xl" type="submit">Submit</Button>
                     </form>
                 </div>
             </div>
